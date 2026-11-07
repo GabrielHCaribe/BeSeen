@@ -17,6 +17,10 @@
       "distribution": "internal",
       "android": { "buildType": "apk" }
     },
+    "preview-basic": {
+      "extends": "preview",
+      "env": { "BESEEN_SCREEN_TIME": "off" }
+    },
     "production": {
       "autoIncrement": true
     }

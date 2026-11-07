@@ -6,9 +6,9 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 // Family Controls entitlement, because Apple approves each exact ID.
 const IOS_BUNDLE_ID = "com.gabrielhcaribe.beseen";
 const ANDROID_PACKAGE = "com.gabrielhcaribe.beseen";
-const APPLE_TEAM_ID = ""; // 10 characters, developer.apple.com → Account → Membership details
-const EAS_PROJECT_ID = ""; // printed by `npx eas-cli init`
-const API_URL = "https://YOUR-PROJECT-REF.supabase.co/functions/v1/api";
+const APPLE_TEAM_ID = "473AY75LMJ"; // 10 characters, developer.apple.com → Account → Membership details
+const EAS_PROJECT_ID = "cbfa7f3f-9c7a-4a70-b395-3764e2014eb7"; // printed by `npx eas-cli init`
+const API_URL = "https://zhejdqdqofypmcpeymvc.supabase.co/functions/v1/api";
 // ---------------------------------------------------------------------------------------------
 
 // Apple must approve Family Controls before any iPhone build that includes it can be installed.

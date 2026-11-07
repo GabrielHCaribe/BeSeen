@@ -12,8 +12,8 @@ on:
         default: ios
       profile:
         type: choice
-        options: [development-basic, development, preview, production]
-        default: development-basic
+        options: [preview-basic, preview, development-basic, development, production]
+        default: preview-basic
 
 jobs:
   build:
@@ -52,6 +52,16 @@ jobs:
           npx eas-cli@latest build --local --non-interactive \
             --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} \
             --output "build/beseen-${{ inputs.profile }}.$ext"
+          echo "BUILD_FILE=build/beseen-${{ inputs.profile }}.$ext" >> "$GITHUB_ENV"
+
+      # Puts the build on expo.dev and prints an install link (open it on the phone) in the run summary.
+      - name: Upload to Expo
+        if: inputs.profile != 'production'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli@latest upload --non-interactive --platform ${{ inputs.platform }} --build-path "$BUILD_FILE" | tee upload.log
+          { echo "### Install on your phone"; echo; grep -Eo 'https://[^ ]+' upload.log | tail -n 1; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:
