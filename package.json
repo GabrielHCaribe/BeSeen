@@ -1,0 +1,43 @@
+{
+  "name": "beseen",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "expo": "~58.0.23",
+    "expo-application": "~58.1.2",
+    "expo-background-task": "~58.0.12",
+    "expo-constants": "~58.0.15",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.18",
+    "expo-device": "~58.0.5",
+    "expo-linking": "~58.0.16",
+    "expo-localization": "~58.0.5",
+    "expo-notifications": "~58.1.8",
+    "expo-router": "~58.0.30",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
+    "expo-task-manager": "~58.0.13",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1"
+  },
+  "devDependencies": {
+    "@bacons/apple-targets": "^5.0.0",
+    "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check:functions": "npx --yes deno@latest check --config supabase/functions/api/deno.json supabase/functions/api/index.ts"
+  },
+  "private": true
+}

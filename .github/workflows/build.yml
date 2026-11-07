@@ -1,0 +1,60 @@
+# Builds on GitHub's machines with `eas build --local`, so it doesn't use Expo's monthly cloud builds.
+# Run it from the Actions tab → Build → Run workflow. The finished file is under the run's Artifacts.
+# Needs a repo secret EXPO_TOKEN (expo.dev → Account settings → Access tokens).
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        options: [ios, android]
+        default: ios
+      profile:
+        type: choice
+        options: [development-basic, development, preview, production]
+        default: development-basic
+
+jobs:
+  build:
+    runs-on: ${{ inputs.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - if: inputs.platform == 'ios'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - if: inputs.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      - name: Build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          case "${{ inputs.platform }}-${{ inputs.profile }}" in
+            ios-*) ext=ipa ;;
+            android-production) ext=aab ;;
+            *) ext=apk ;;
+          esac
+          npx eas-cli@latest build --local --non-interactive \
+            --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} \
+            --output "build/beseen-${{ inputs.profile }}.$ext"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beseen-${{ inputs.platform }}-${{ inputs.profile }}
+          path: build/
+          retention-days: 14

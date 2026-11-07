@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Be my partner · BeSeen</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <div class="brand">BeSeen</div>
+
+      <section id="loading" data-step><p class="muted">Loading your invite…</p></section>
+
+      <section id="invite" data-step hidden>
+        <h1><span class="user"></span> wants you as their accountability partner</h1>
+        <p>
+          <span class="user"></span> uses BeSeen to stick to phone limits they set for themselves. As their partner, you'd get a
+          short alert when they:
+        </p>
+        <ul>
+          <li>go over a daily time limit, or try to open something they blocked</li>
+          <li>loosen or remove one of their rules</li>
+          <li>remove you as their partner, or switch BeSeen off or delete it</li>
+        </ul>
+        <p class="muted">You'll never see screenshots or browsing history. You don't need an account.</p>
+
+        <div class="card">
+          <form id="email-form">
+            <label for="email">Get alerts by email</label>
+            <input id="email" type="email" autocomplete="email" required placeholder="you@example.com" />
+            <button class="button" type="submit">Email me alerts</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <label>Or get them in the BeSeen app</label>
+          <p class="muted">Only works if BeSeen is already installed on this phone.</p>
+          <a id="app-link" class="button secondary" href="#">Open in BeSeen</a>
+        </div>
+      </section>
+
+      <section id="check-email" data-step hidden>
+        <h1>Check your inbox</h1>
+        <p>We sent a confirmation link to <strong id="sent-to"></strong>. Tap it to start getting <span class="user"></span>'s alerts.</p>
+        <p class="muted">Nothing arrived? Check spam, or go back and try again.</p>
+      </section>
+
+      <section id="error" data-step hidden>
+        <h1>This invite didn't work</h1>
+        <p id="error-text" class="error"></p>
+        <p class="muted">Ask your friend to send you a new link from their BeSeen app.</p>
+      </section>
+
+      <footer><a href="/privacy">Privacy</a></footer>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="/app.js"></script>
+    <script>
+      const token = beseen.token();
+      document.getElementById("app-link").href = `beseen://accept?t=${encodeURIComponent(token)}`;
+
+      beseen
+        .call("public/invite-info", { token })
+        .then((info) => {
+          beseen.fill(".user", info.user_name);
+          beseen.show("invite");
+        })
+        .catch((e) => beseen.fail(e.message));
+
+      document.getElementById("email-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = event.target.querySelector("button");
+        const email = document.getElementById("email").value.trim();
+        button.disabled = true;
+        try {
+          await beseen.call("public/accept-email", { token, email });
+          document.getElementById("sent-to").textContent = email;
+          beseen.show("check-email");
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

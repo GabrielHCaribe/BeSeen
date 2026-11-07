@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Confirm · BeSeen</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <div class="brand">BeSeen</div>
+
+      <section id="confirm" data-step>
+        <h1>Confirm you'll be their partner</h1>
+        <p>You'll get a short email when they slip. You can stop at any time from any alert.</p>
+        <button id="confirm-button" class="button">Confirm</button>
+      </section>
+
+      <section id="done" data-step hidden>
+        <h1>You're <span class="user"></span>'s accountability partner</h1>
+        <p>We'll email you if they slip. <span class="user"></span> has been told you accepted.</p>
+        <p class="muted">Every alert has a link to stop them.</p>
+      </section>
+
+      <section id="error" data-step hidden>
+        <h1>This link didn't work</h1>
+        <p id="error-text" class="error"></p>
+      </section>
+
+      <footer><a href="/privacy">Privacy</a></footer>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="/app.js"></script>
+    <script>
+      // A button rather than confirming on load, so email scanners that open links don't confirm on someone's behalf.
+      document.getElementById("confirm-button").addEventListener("click", async (event) => {
+        event.target.disabled = true;
+        try {
+          const result = await beseen.call("public/confirm-email", { token: beseen.token() });
+          beseen.fill(".user", result.user_name);
+          beseen.show("done");
+        } catch (e) {
+          beseen.fail(e.message);
+        }
+      });
+    </script>
+  </body>
+</html>

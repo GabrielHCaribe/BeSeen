@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Stop alerts · BeSeen</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <div class="brand">BeSeen</div>
+
+      <section id="ask" data-step>
+        <h1>Stop getting these alerts?</h1>
+        <p>You'll stop being their accountability partner. They'll be told, and BeSeen will show them they have no partner.</p>
+        <button id="stop-button" class="button">Stop alerts</button>
+      </section>
+
+      <section id="done" data-step hidden>
+        <h1>Done</h1>
+        <p>You won't get any more alerts.</p>
+      </section>
+
+      <section id="error" data-step hidden>
+        <h1>This link didn't work</h1>
+        <p id="error-text" class="error"></p>
+      </section>
+
+      <footer><a href="/privacy">Privacy</a></footer>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="/app.js"></script>
+    <script>
+      document.getElementById("stop-button").addEventListener("click", async (event) => {
+        event.target.disabled = true;
+        try {
+          await beseen.call("public/stop", {}, `?t=${encodeURIComponent(beseen.token())}`);
+          beseen.show("done");
+        } catch (e) {
+          beseen.fail(e.message);
+        }
+      });
+    </script>
+  </body>
+</html>

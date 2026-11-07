@@ -1,0 +1,6 @@
+project_id = "beseen"
+
+# The app authenticates with a per-device secret (x-beseen-device header) and the partner web pages
+# are public, so the gateway's JWT check is off. Every route checks its own credentials.
+[functions.api]
+verify_jwt = false

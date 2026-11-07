@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="beseen_accessibility_label">BeSeen</string>
+  <string name="beseen_accessibility_description">BeSeen uses Accessibility to see which app or website is on screen, so it can block the ones you chose and stop apps when you reach your daily limit. It also notices when the uninstall screen for BeSeen opens. When you slip, BeSeen sends a short alert (for example \"Went over 30 min on Instagram\") to the accountability partner you chose. BeSeen never records what you type, never takes screenshots, and never sends your browsing history.</string>
+</resources>

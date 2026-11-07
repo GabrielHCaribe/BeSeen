@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["BeSeenNativeModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.beseennative.BeSeenNativeModule"]
+  }
+}
