@@ -15,13 +15,16 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": { "buildType": "apk" }
     },
     "preview-basic": {
       "extends": "preview",
+      "channel": "preview-basic",
       "env": { "BESEEN_SCREEN_TIME": "off" }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true
     }
   },

@@ -60,6 +60,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-notifications", { enableBackgroundRemoteNotifications: true }],
     ...(SCREEN_TIME ? ["@bacons/apple-targets", "./plugins/withBeSeenExtensions"] : []),
   ],
+  // OTA updates reach only builds with the same app version: bump `version` whenever native code changes.
+  runtimeVersion: { policy: "appVersion" },
+  updates: EAS_PROJECT_ID ? { url: `https://u.expo.dev/${EAS_PROJECT_ID}` } : undefined,
   experiments: {
     typedRoutes: true,
   },
