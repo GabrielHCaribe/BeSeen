@@ -1,6 +1,7 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { call, EAS_PROJECT_ID } from "./api";
+import { syncDailyRecap } from "./reminders";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -17,6 +18,7 @@ export async function registerPush(ask: boolean): Promise<boolean> {
   if (!Device.isDevice || !EAS_PROJECT_ID) return false;
   let { status } = await Notifications.getPermissionsAsync();
   if (status !== "granted" && ask) status = (await Notifications.requestPermissionsAsync()).status;
+  syncDailyRecap();
   try {
     // iOS hands out a token even without permission, which still allows silent "are you alive?" pings.
     const token = (await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID })).data;

@@ -2,10 +2,11 @@ import type { SettingsScreen } from "@modules/beseen-native";
 import * as SecureStore from "expo-secure-store";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Switch } from "react-native";
 import { ADULT_DNS_HOST } from "@/lib/constants";
 import { BeSeenNative } from "@/lib/native";
 import { registerPush } from "@/lib/push";
+import { dailyRecapEnabled, setDailyRecap } from "@/lib/reminders";
 import { checkIn } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { Body, Button, Card, Heading, Row, Screen, StatusPill, Title } from "@/ui/components";
@@ -54,6 +55,7 @@ export default function Setup() {
           />
         )}
         <Button title="Allow notifications" kind="secondary" onPress={() => registerPush(true)} />
+        <DailyRecapToggle />
         {status.monitoringError ? <Body muted>Monitoring error: {status.monitoringError}</Body> : null}
         {status.queued > 0 ? <Body muted>{status.queued} alert(s) waiting to be sent.</Body> : null}
       </Screen>
@@ -61,6 +63,32 @@ export default function Setup() {
   }
 
   return <AndroidSetup hasAdultRule={!!state?.rules.some((r) => r.target_type === "adult_sites")} />;
+}
+
+function DailyRecapToggle() {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    dailyRecapEnabled().then(setOn);
+  }, []);
+  if (on === null) return null;
+  return (
+    <Card>
+      <Row
+        title="Evening recap"
+        subtitle="A reminder at 8:30 pm to check your streak"
+        right={
+          <Switch
+            value={on}
+            onValueChange={(next) => {
+              setOn(next);
+              setDailyRecap(next);
+            }}
+          />
+        }
+        last
+      />
+    </Card>
+  );
 }
 
 function AndroidSetup({ hasAdultRule }: { hasAdultRule: boolean }) {
@@ -161,6 +189,7 @@ function AndroidSetup({ hasAdultRule }: { hasAdultRule: boolean }) {
         />
       </Card>
       <Button title="Start status notification" kind="secondary" onPress={() => BeSeenNative?.startMonitorService?.()} />
+      <DailyRecapToggle />
       {status.queued > 0 ? <Body muted>{status.queued} alert(s) waiting to be sent.</Body> : null}
     </Screen>
   );

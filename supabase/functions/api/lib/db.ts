@@ -31,6 +31,7 @@ export interface Device {
 export interface Account {
   id: string;
   display_name: string | null;
+  created_at: string;
 }
 
 export interface Partner {
@@ -68,7 +69,7 @@ export async function authDevice(req: Request): Promise<Device> {
 }
 
 export async function getAccount(id: string): Promise<Account> {
-  return must(await db.from("accounts").select("id, display_name").eq("id", id).single()) as Account;
+  return must(await db.from("accounts").select("id, display_name, created_at").eq("id", id).single()) as Account;
 }
 
 export async function livePartner(accountId: string): Promise<Partner | null> {

@@ -3,6 +3,7 @@ import { authDevice, db, type Device, getAccount, livePartner, must, type Platfo
 import { HttpError, json, readJson, requireString } from "../lib/http.ts";
 import { randomToken, sha256 } from "../lib/crypto.ts";
 import { recordEvent } from "../notify.ts";
+import { progress } from "../progress.ts";
 
 const PLATFORMS: Platform[] = ["ios", "android", "macos", "windows", "linux"];
 
@@ -53,6 +54,11 @@ export async function state(req: Request) {
     db.from("partners").select("id, account_id").eq("partner_account_id", device.account_id).eq("status", "active"),
   ]);
 
+  // Nice to have: a failure here leaves out the streak card instead of breaking the main screen.
+  const mine = await progress(device.account_id, account.created_at, device.timezone).catch((error) => {
+    console.error("progress failed", error);
+    return undefined;
+  });
   const pendingByRule = new Map(must(pending).map((c: { rule_id: string }) => [c.rule_id, c]));
   const supporting = await Promise.all(
     must(partnerOf).map(async (p: { id: string; account_id: string }) => {
@@ -70,6 +76,7 @@ export async function state(req: Request) {
     server_time: new Date().toISOString(),
     cooldown_hours: env.cooldownHours,
     me: { display_name: account.display_name },
+    progress: mine,
     partner: partner
       ? {
         id: partner.id,

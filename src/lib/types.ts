@@ -42,10 +42,21 @@ export interface Supporting {
   alerts: Alert[];
 }
 
+export interface Progress {
+  started_at: string;
+  streak_days: number; // days kept in a row, counting today unless today has a slip
+  best_days: number;
+  slipped_today: boolean;
+  resisted_today: number;
+  resisted_total: number;
+  week: { date: string; state: "kept" | "slipped" | "today" | "before" }[]; // oldest first, ends today
+}
+
 export interface ServerState {
   server_time: string;
   cooldown_hours: number;
   me: { display_name: string | null };
+  progress?: Progress; // missing from servers older than the progress card
   partner: PartnerInfo | null;
   rules: Rule[];
   partner_of: Supporting[];
