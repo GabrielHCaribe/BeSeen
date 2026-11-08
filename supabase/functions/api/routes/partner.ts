@@ -8,6 +8,8 @@ const INVITE_DAYS = 7;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function inviteUrl(token: string) {
+  // Without a host the link isn't tappable in Messages, so refuse instead of sending a dead link.
+  if (!env.webBaseUrl) throw new HttpError(503, "Invites aren't set up on the server yet (WEB_BASE_URL is missing).");
   return `${env.webBaseUrl}/invite?t=${encodeURIComponent(token)}`;
 }
 
@@ -75,10 +77,11 @@ export async function invite(req: Request) {
   if (existing?.status === "active") {
     throw new HttpError(409, "Remove your current partner before inviting someone new.");
   }
+  const { token, fields } = await newInviteToken();
+  const url = inviteUrl(token);
   if (existing) await endPartnership(existing.id, "replaced");
 
   must(await db.from("accounts").update({ display_name: myName }).eq("id", device.account_id));
-  const { token, fields } = await newInviteToken();
   must(
     await db.from("partners").insert({
       account_id: device.account_id,
@@ -87,7 +90,7 @@ export async function invite(req: Request) {
       ...fields,
     }),
   );
-  return json({ invite_url: inviteUrl(token) });
+  return json({ invite_url: url });
 }
 
 // Tokens are stored hashed, so "share again" issues a fresh link.
@@ -96,8 +99,9 @@ export async function newLink(req: Request) {
   const partner = await livePartner(device.account_id);
   if (partner?.status !== "invited") throw new HttpError(409, "There's no pending invite.");
   const { token, fields } = await newInviteToken();
+  const url = inviteUrl(token);
   must(await db.from("partners").update(fields).eq("id", partner.id));
-  return json({ invite_url: inviteUrl(token) });
+  return json({ invite_url: url });
 }
 
 export async function cancelInvite(req: Request) {
