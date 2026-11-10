@@ -26,6 +26,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: "beseen",
   scheme: "beseen",
   version: "1.0.0",
+  // No web app: keeps `eas update` from trying to bundle one.
+  platforms: ["ios", "android"],
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",

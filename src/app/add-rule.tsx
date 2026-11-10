@@ -140,7 +140,7 @@ export default function AddRule() {
                 ? `${describeCounts(picked)} chosen. Tap to change.`
                 : option.subtitle
             }
-            right={kind === option.kind ? <Body style={{ color: t.success, fontFamily: undefined, fontWeight: "900" }}>✓</Body> : undefined}
+            right={kind === option.kind ? <Body style={{ color: t.accent, fontWeight: "700" }}>✓</Body> : undefined}
             onPress={() => choose(option.kind)}
             last={i === KINDS[platform].length - 1}
           />
@@ -160,7 +160,7 @@ export default function AddRule() {
                   title={a.label}
                   right={
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      {app?.packageName === a.packageName && <Body style={{ color: t.success, fontFamily: undefined, fontWeight: "900" }}>✓</Body>}
+                      {app?.packageName === a.packageName && <Body style={{ color: t.accent, fontWeight: "700" }}>✓</Body>}
                       {a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 28, height: 28 }} /> : null}
                     </View>
                   }

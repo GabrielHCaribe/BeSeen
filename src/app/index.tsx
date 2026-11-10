@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 import type { Rule } from "@/lib/types";
 import { Body, Button, Card, FadeIn, Heading, IconBadge, Row, Screen } from "@/ui/components";
 import { MilestoneCelebration, SetupChecklist, StatsRow, StreakCard } from "@/ui/progress";
-import { fonts, px, useTheme } from "@/ui/theme";
+import { useTheme } from "@/ui/theme";
 
 export default function Home() {
   const { state, status, error, loading, refresh } = useStore();
@@ -67,7 +67,7 @@ export default function Home() {
       {name ? <Text style={[styles.greeting, { color: t.muted }]}>{greeting()}, {name}</Text> : null}
 
       {error && (
-        <Card style={{ backgroundColor: t.dangerSoft, borderColor: t.danger }}>
+        <Card style={{ backgroundColor: t.dangerSoft, borderColor: t.danger + "40" }}>
           <Body style={{ paddingVertical: 12, color: t.danger }}>{error}</Body>
         </Card>
       )}
@@ -105,7 +105,7 @@ export default function Home() {
         ) : (
           <View style={styles.empty}>
             <IconBadge glyph="+" size={44} />
-            <Body style={{ fontFamily: fonts.pixel, fontSize: 11, lineHeight: 18, textAlign: "center" }}>Nothing to keep in check yet</Body>
+            <Body style={{ fontWeight: "500" }}>Nothing to keep in check yet</Body>
             <Body muted style={{ textAlign: "center" }}>
               Start with the one app that eats your time. You can add more later.
             </Body>
@@ -190,6 +190,6 @@ function RuleRow({ rule, last }: { rule: Rule; last: boolean }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  greeting: { fontFamily: fonts.text, fontSize: 22, marginBottom: -8, marginLeft: px.thin },
+  greeting: { fontSize: 15, marginBottom: -4, marginLeft: 2 },
   empty: { alignItems: "center", gap: 8, paddingVertical: 20, paddingHorizontal: 8 },
 });

@@ -57,7 +57,7 @@ export default function Accept() {
   if (!info) {
     return (
       <Screen>
-        <ActivityIndicator color={t.accent} />
+        <ActivityIndicator color={t.muted} />
       </Screen>
     );
   }

@@ -12,7 +12,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { fonts, hardShadow, px, type Theme, useTheme } from "./theme";
+import { type Theme, useTheme } from "./theme";
 
 export function Screen({
   children,
@@ -30,33 +30,22 @@ export function Screen({
       contentContainerStyle={styles.screen}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      refreshControl={
-        onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} /> : undefined
-      }
+      indicatorStyle="white"
+      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.muted} /> : undefined}
     >
       {children}
     </ScrollView>
   );
 }
 
-// A bordered window with a hard shadow, like a menu box in an old RPG.
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const t = useTheme();
-  return (
-    <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.border }, hardShadow(t.shadow), style]}>
-      {children}
-    </View>
-  );
+  return <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.border }, style]}>{children}</View>;
 }
 
 export function Heading({ children }: { children: ReactNode }) {
   const t = useTheme();
-  return (
-    <Text style={[styles.heading, { color: t.muted }]}>
-      <Text style={{ color: t.accent }}>▶ </Text>
-      {children}
-    </Text>
-  );
+  return <Text style={[styles.heading, { color: t.muted }]}>{children}</Text>;
 }
 
 export function Title({ children }: { children: ReactNode }) {
@@ -85,9 +74,7 @@ export function Button({
   disabled?: boolean;
 }) {
   const t = useTheme();
-  const plain = kind === "plain";
-  const background = kind === "primary" ? t.accent : kind === "danger" ? t.danger : t.surface;
-  const color = kind === "primary" ? t.accentText : kind === "danger" ? "#FFFFFF" : t.text;
+  const color = kind === "primary" ? t.primaryText : kind === "danger" ? t.danger : kind === "plain" ? t.muted : t.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -95,20 +82,14 @@ export function Button({
       disabled={disabled || busy}
       style={({ pressed }) => [
         styles.button,
-        plain
-          ? { borderColor: "transparent" }
-          : [{ backgroundColor: background, borderColor: t.border }, !pressed && hardShadow(t.shadow)],
-        // Pressing pushes the button down into its own shadow.
-        pressed && !plain && { transform: [{ translateX: px.shadow }, { translateY: px.shadow }] },
-        pressed && plain && { opacity: 0.6 },
-        disabled && { opacity: 0.5 },
+        kind === "primary" && { backgroundColor: t.primary },
+        kind === "secondary" && { borderColor: t.border, borderWidth: 1 },
+        kind === "danger" && { borderColor: t.dangerSoft, borderWidth: 1, backgroundColor: t.dangerSoft },
+        pressed && { opacity: 0.7 },
+        disabled && { opacity: 0.4 },
       ]}
     >
-      {busy ? (
-        <ActivityIndicator color={plain ? t.accent : color} />
-      ) : (
-        <Text style={[styles.buttonText, { color: plain ? t.accent : color }]}>{title}</Text>
-      )}
+      {busy ? <ActivityIndicator color={color} /> : <Text style={[styles.buttonText, { color }]}>{title}</Text>}
     </Pressable>
   );
 }
@@ -135,8 +116,8 @@ export function Row({
       disabled={!onPress}
       style={({ pressed }) => [
         styles.row,
-        !last && { borderBottomColor: t.border, borderBottomWidth: px.thin },
-        pressed && { backgroundColor: t.subtle },
+        !last && { borderBottomColor: t.border, borderBottomWidth: StyleSheet.hairlineWidth },
+        pressed && { opacity: 0.55 },
       ]}
     >
       {icon}
@@ -145,47 +126,35 @@ export function Row({
         {subtitle ? <Text style={[styles.rowSubtitle, { color: t.muted }]}>{subtitle}</Text> : null}
       </View>
       {right}
-      {onPress ? <Text style={[styles.chevron, { color: t.accent }]}>▶</Text> : null}
+      {onPress ? <Text style={[styles.chevron, { color: t.muted }]}>›</Text> : null}
     </Pressable>
   );
 }
 
 type Tone = "accent" | "success" | "warning" | "danger" | "muted";
 
-function toneColors(t: Theme, tone: Tone) {
+function toneColor(t: Theme, tone: Tone) {
   switch (tone) {
     case "success":
-      return { fg: t.success, bg: t.successSoft };
+      return t.success;
     case "warning":
-      return { fg: t.warning, bg: t.warningSoft };
+      return t.warning;
     case "danger":
-      return { fg: t.danger, bg: t.dangerSoft };
+      return t.danger;
     case "muted":
-      return { fg: t.muted, bg: t.background };
+      return t.muted;
     default:
-      return { fg: t.accent, bg: t.subtle };
+      return t.accent;
   }
 }
 
-// The pixel font only has plain letters and digits; symbols fall back to the system font.
-const PIXEL_GLYPH = /^[A-Za-z0-9?!+]$/;
-
-// A square tinted tile holding a symbol or a letter, used at the start of rows.
+// A thin outlined circle holding a symbol or a letter, used at the start of rows.
 export function IconBadge({ glyph, tone = "accent", size = 36 }: { glyph: string; tone?: Tone; size?: number }) {
   const t = useTheme();
-  const { fg, bg } = toneColors(t, tone);
-  const pixel = PIXEL_GLYPH.test(glyph);
+  const fg = toneColor(t, tone);
   return (
-    <View style={[styles.badge, { width: size, height: size, backgroundColor: bg, borderColor: fg }]}>
-      <Text
-        style={
-          pixel
-            ? { color: fg, fontFamily: fonts.pixel, fontSize: Math.round(size * 0.36), lineHeight: Math.round(size * 0.5) }
-            : { color: fg, fontSize: size * 0.48, fontWeight: "900" }
-        }
-      >
-        {glyph}
-      </Text>
+    <View style={[styles.badge, { width: size, height: size, borderRadius: size / 2, borderColor: t.border }]}>
+      <Text style={{ color: fg, fontSize: size * 0.42, fontWeight: "500" }}>{glyph}</Text>
     </View>
   );
 }
@@ -199,15 +168,11 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        { borderColor: t.border, backgroundColor: selected ? t.accent : t.surface },
-        selected ? { transform: [{ translateX: px.thin }, { translateY: px.thin }] } : hardShadow(t.shadow, px.thin),
+        { borderColor: selected ? t.primary : t.border, backgroundColor: selected ? t.primary : "transparent" },
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Text style={[styles.chipText, { color: selected ? t.accentText : t.text }]}>
-        {selected ? "▶ " : ""}
-        {label}
-      </Text>
+      <Text style={{ color: selected ? t.primaryText : t.text, fontWeight: selected ? "600" : "400", fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -216,55 +181,49 @@ export function Field(props: TextInputProps & { label: string }) {
   const t = useTheme();
   const { label, style, ...rest } = props;
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 10 }}>
       <Text style={[styles.fieldLabel, { color: t.muted }]}>{label}</Text>
       <TextInput
         placeholderTextColor={t.muted}
         selectionColor={t.accent}
-        style={[
-          styles.input,
-          // Inset: dark edge top-left, so the box looks sunk into the page.
-          { color: t.text, borderColor: t.border, backgroundColor: t.surface, boxShadow: `inset ${px.thin}px ${px.thin}px 0px 0px ${t.subtle}` },
-          style,
-        ]}
+        keyboardAppearance="dark"
+        style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.surface }, style]}
         {...rest}
       />
     </View>
   );
 }
 
+// A small glowing dot and a word.
 export function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   const t = useTheme();
-  const { fg, bg } = toneColors(t, ok ? "success" : "danger");
+  const color = ok ? t.success : t.danger;
   return (
-    <View style={[styles.pill, { backgroundColor: bg, borderColor: fg }]}>
-      <Text style={[styles.pillText, { color: fg }]}>{label}</Text>
+    <View style={styles.pill}>
+      <View style={[styles.pillDot, { backgroundColor: color, boxShadow: `0px 0px 6px ${color}` }]} />
+      <Text style={{ color: t.text, fontWeight: "500", fontSize: 14 }}>{label}</Text>
     </View>
   );
 }
 
-const SEGMENTS = 10;
-
-// 0–1, drawn as a segmented health bar. Animates whenever the value changes.
+// 0–1, a thin line with a soft glow. Animates whenever the value changes.
 export function ProgressBar({ value, color, track }: { value: number; color: string; track: string }) {
-  const t = useTheme();
   const [width] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.timing(width, { toValue: Math.max(0, Math.min(1, value)), duration: 700, useNativeDriver: false }).start();
+    Animated.timing(width, { toValue: Math.max(0, Math.min(1, value)), duration: 900, useNativeDriver: false }).start();
   }, [value, width]);
   return (
-    <View style={[styles.track, { backgroundColor: track, borderColor: t.border }]}>
+    <View style={[styles.track, { backgroundColor: track }]}>
       <Animated.View
         style={[
           styles.fill,
-          { backgroundColor: color, width: width.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) },
+          {
+            backgroundColor: color,
+            boxShadow: `0px 0px 8px ${color}`,
+            width: width.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }),
+          },
         ]}
       />
-      <View style={styles.segments} pointerEvents="none">
-        {Array.from({ length: SEGMENTS }, (_, i) => (
-          <View key={i} style={[styles.segment, i < SEGMENTS - 1 && { borderRightColor: track, borderRightWidth: px.thin }]} />
-        ))}
-      </View>
     </View>
   );
 }
@@ -273,13 +232,13 @@ export function ProgressBar({ value, color, track }: { value: number; color: str
 export function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   const [progress] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.timing(progress, { toValue: 1, duration: 450, delay, useNativeDriver: true }).start();
+    Animated.timing(progress, { toValue: 1, duration: 600, delay, useNativeDriver: true }).start();
   }, [progress, delay]);
   return (
     <Animated.View
       style={{
         opacity: progress,
-        transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+        transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
       }}
     >
       {children}
@@ -288,41 +247,23 @@ export function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: n
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: 16, gap: 18, paddingBottom: 56 },
-  card: {
-    borderRadius: 0,
-    borderWidth: px.border,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    marginRight: px.shadow,
-  },
-  heading: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16, textTransform: "uppercase", letterSpacing: 1, marginTop: 6, marginBottom: -6 },
-  title: { fontFamily: fonts.pixel, fontSize: 17, lineHeight: 28 },
-  body: { fontFamily: fonts.text, fontSize: 21, lineHeight: 24 },
-  button: {
-    minHeight: 54,
-    borderRadius: 0,
-    borderWidth: px.border,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    marginRight: px.shadow,
-    marginBottom: px.shadow,
-  },
-  buttonText: { fontFamily: fonts.pixel, fontSize: 12, lineHeight: 18, textAlign: "center" },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12, marginHorizontal: -14, paddingHorizontal: 14 },
-  rowTitle: { fontFamily: fonts.text, fontSize: 23, lineHeight: 25 },
-  rowSubtitle: { fontFamily: fonts.text, fontSize: 18, marginTop: 2, lineHeight: 20 },
-  chevron: { fontSize: 12 },
-  badge: { alignItems: "center", justifyContent: "center", borderWidth: px.thin },
-  chip: { borderWidth: px.border, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 7, marginRight: px.thin, marginBottom: px.thin },
-  chipText: { fontFamily: fonts.text, fontSize: 21, lineHeight: 22 },
-  fieldLabel: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16 },
-  input: { borderWidth: px.border, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 10, fontSize: 23, fontFamily: fonts.text },
-  pill: { borderRadius: 0, borderWidth: px.thin, paddingHorizontal: 8, paddingVertical: 2 },
-  pillText: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16 },
-  track: { height: 18, borderWidth: px.thin, overflow: "hidden" },
-  fill: { height: "100%" },
-  segments: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, flexDirection: "row" },
-  segment: { flex: 1 },
+  screen: { paddingHorizontal: 20, paddingTop: 12, gap: 16, paddingBottom: 64 },
+  card: { borderRadius: 18, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 2 },
+  heading: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 2, marginTop: 14, marginBottom: -4, marginLeft: 2 },
+  title: { fontSize: 30, fontWeight: "300", letterSpacing: -0.8, lineHeight: 36 },
+  body: { fontSize: 16, lineHeight: 24 },
+  button: { minHeight: 54, borderRadius: 999, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 },
+  buttonText: { fontSize: 16, fontWeight: "600", letterSpacing: 0.2 },
+  row: { flexDirection: "row", alignItems: "center", paddingVertical: 15, gap: 14 },
+  rowTitle: { fontSize: 16, fontWeight: "500" },
+  rowSubtitle: { fontSize: 14, marginTop: 3, lineHeight: 19 },
+  chevron: { fontSize: 22, fontWeight: "300", marginTop: -2 },
+  badge: { alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  fieldLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 2 },
+  input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 15, fontSize: 17 },
+  pill: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pillDot: { width: 7, height: 7, borderRadius: 4 },
+  track: { height: 3, borderRadius: 2 },
+  fill: { height: 3, borderRadius: 2 },
 });

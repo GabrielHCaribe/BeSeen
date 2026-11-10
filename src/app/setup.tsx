@@ -80,9 +80,8 @@ function DailyRecapToggle() {
         subtitle="A reminder at 8:30 pm to check your streak"
         right={
           <Switch
-            trackColor={{ true: t.success, false: t.subtle }}
-            thumbColor={t.surface}
-            ios_backgroundColor={t.subtle}
+            trackColor={{ true: t.accent, false: t.border }}
+            ios_backgroundColor={t.border}
             value={on}
             onValueChange={(next) => {
               setOn(next);

@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@expo-google-fonts/press-start-2p": "^0.4.1",
-    "@expo-google-fonts/vt323": "^0.4.1",
     "expo": "~58.0.23",
     "expo-application": "~58.1.2",
     "expo-background-task": "~58.0.12",
@@ -12,7 +10,6 @@
     "expo-crypto": "~58.0.7",
     "expo-dev-client": "~58.0.18",
     "expo-device": "~58.0.5",
-    "expo-font": "~58.0.11",
     "expo-linking": "~58.0.16",
     "expo-localization": "~58.0.5",
     "expo-notifications": "~58.1.8",
