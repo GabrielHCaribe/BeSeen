@@ -12,7 +12,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { type Theme, useTheme } from "./theme";
+import { fonts, hardShadow, px, type Theme, useTheme } from "./theme";
 
 export function Screen({
   children,
@@ -30,17 +30,20 @@ export function Screen({
       contentContainerStyle={styles.screen}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.muted} /> : undefined}
+      refreshControl={
+        onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} /> : undefined
+      }
     >
       {children}
     </ScrollView>
   );
 }
 
+// A bordered window with a hard shadow, like a menu box in an old RPG.
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   const t = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.border, shadowColor: t.shadow }, style]}>
+    <View style={[styles.card, { backgroundColor: t.surface, borderColor: t.border }, hardShadow(t.shadow), style]}>
       {children}
     </View>
   );
@@ -48,7 +51,12 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
 
 export function Heading({ children }: { children: ReactNode }) {
   const t = useTheme();
-  return <Text style={[styles.heading, { color: t.muted }]}>{children}</Text>;
+  return (
+    <Text style={[styles.heading, { color: t.muted }]}>
+      <Text style={{ color: t.accent }}>▶ </Text>
+      {children}
+    </Text>
+  );
 }
 
 export function Title({ children }: { children: ReactNode }) {
@@ -77,8 +85,9 @@ export function Button({
   disabled?: boolean;
 }) {
   const t = useTheme();
-  const filled = kind === "primary";
-  const color = kind === "danger" ? t.danger : filled ? t.accentText : t.accent;
+  const plain = kind === "plain";
+  const background = kind === "primary" ? t.accent : kind === "danger" ? t.danger : t.surface;
+  const color = kind === "primary" ? t.accentText : kind === "danger" ? "#FFFFFF" : t.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -86,14 +95,20 @@ export function Button({
       disabled={disabled || busy}
       style={({ pressed }) => [
         styles.button,
-        filled && { backgroundColor: t.accent },
-        kind === "secondary" && { borderColor: t.border, borderWidth: 1, backgroundColor: t.surface },
-        kind === "danger" && { backgroundColor: t.dangerSoft },
-        pressed && { transform: [{ scale: 0.98 }], opacity: 0.85 },
+        plain
+          ? { borderColor: "transparent" }
+          : [{ backgroundColor: background, borderColor: t.border }, !pressed && hardShadow(t.shadow)],
+        // Pressing pushes the button down into its own shadow.
+        pressed && !plain && { transform: [{ translateX: px.shadow }, { translateY: px.shadow }] },
+        pressed && plain && { opacity: 0.6 },
         disabled && { opacity: 0.5 },
       ]}
     >
-      {busy ? <ActivityIndicator color={color} /> : <Text style={[styles.buttonText, { color }]}>{title}</Text>}
+      {busy ? (
+        <ActivityIndicator color={plain ? t.accent : color} />
+      ) : (
+        <Text style={[styles.buttonText, { color: plain ? t.accent : color }]}>{title}</Text>
+      )}
     </Pressable>
   );
 }
@@ -120,8 +135,8 @@ export function Row({
       disabled={!onPress}
       style={({ pressed }) => [
         styles.row,
-        !last && { borderBottomColor: t.border, borderBottomWidth: StyleSheet.hairlineWidth },
-        pressed && { opacity: 0.6 },
+        !last && { borderBottomColor: t.border, borderBottomWidth: px.thin },
+        pressed && { backgroundColor: t.subtle },
       ]}
     >
       {icon}
@@ -130,7 +145,7 @@ export function Row({
         {subtitle ? <Text style={[styles.rowSubtitle, { color: t.muted }]}>{subtitle}</Text> : null}
       </View>
       {right}
-      {onPress ? <Text style={[styles.chevron, { color: t.muted }]}>›</Text> : null}
+      {onPress ? <Text style={[styles.chevron, { color: t.accent }]}>▶</Text> : null}
     </Pressable>
   );
 }
@@ -152,13 +167,25 @@ function toneColors(t: Theme, tone: Tone) {
   }
 }
 
-// A round tinted badge holding a symbol or a letter, used at the start of rows.
+// The pixel font only has plain letters and digits; symbols fall back to the system font.
+const PIXEL_GLYPH = /^[A-Za-z0-9?!+]$/;
+
+// A square tinted tile holding a symbol or a letter, used at the start of rows.
 export function IconBadge({ glyph, tone = "accent", size = 36 }: { glyph: string; tone?: Tone; size?: number }) {
   const t = useTheme();
   const { fg, bg } = toneColors(t, tone);
+  const pixel = PIXEL_GLYPH.test(glyph);
   return (
-    <View style={[styles.badge, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
-      <Text style={{ color: fg, fontSize: size * 0.45, fontWeight: "700" }}>{glyph}</Text>
+    <View style={[styles.badge, { width: size, height: size, backgroundColor: bg, borderColor: fg }]}>
+      <Text
+        style={
+          pixel
+            ? { color: fg, fontFamily: fonts.pixel, fontSize: Math.round(size * 0.36), lineHeight: Math.round(size * 0.5) }
+            : { color: fg, fontSize: size * 0.48, fontWeight: "900" }
+        }
+      >
+        {glyph}
+      </Text>
     </View>
   );
 }
@@ -172,11 +199,15 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        { borderColor: selected ? t.accent : t.border, backgroundColor: selected ? t.subtle : t.surface },
+        { borderColor: t.border, backgroundColor: selected ? t.accent : t.surface },
+        selected ? { transform: [{ translateX: px.thin }, { translateY: px.thin }] } : hardShadow(t.shadow, px.thin),
         pressed && { opacity: 0.7 },
       ]}
     >
-      <Text style={{ color: selected ? t.accent : t.text, fontWeight: selected ? "700" : "500", fontSize: 15 }}>{label}</Text>
+      <Text style={[styles.chipText, { color: selected ? t.accentText : t.text }]}>
+        {selected ? "▶ " : ""}
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -189,7 +220,13 @@ export function Field(props: TextInputProps & { label: string }) {
       <Text style={[styles.fieldLabel, { color: t.muted }]}>{label}</Text>
       <TextInput
         placeholderTextColor={t.muted}
-        style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.surface }, style]}
+        selectionColor={t.accent}
+        style={[
+          styles.input,
+          // Inset: dark edge top-left, so the box looks sunk into the page.
+          { color: t.text, borderColor: t.border, backgroundColor: t.surface, boxShadow: `inset ${px.thin}px ${px.thin}px 0px 0px ${t.subtle}` },
+          style,
+        ]}
         {...rest}
       />
     </View>
@@ -200,26 +237,34 @@ export function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   const t = useTheme();
   const { fg, bg } = toneColors(t, ok ? "success" : "danger");
   return (
-    <View style={[styles.pill, { backgroundColor: bg }]}>
-      <Text style={{ color: fg, fontWeight: "700", fontSize: 13 }}>{label}</Text>
+    <View style={[styles.pill, { backgroundColor: bg, borderColor: fg }]}>
+      <Text style={[styles.pillText, { color: fg }]}>{label}</Text>
     </View>
   );
 }
 
-// 0–1. Animates whenever the value changes.
+const SEGMENTS = 10;
+
+// 0–1, drawn as a segmented health bar. Animates whenever the value changes.
 export function ProgressBar({ value, color, track }: { value: number; color: string; track: string }) {
+  const t = useTheme();
   const [width] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(width, { toValue: Math.max(0, Math.min(1, value)), duration: 700, useNativeDriver: false }).start();
   }, [value, width]);
   return (
-    <View style={[styles.track, { backgroundColor: track }]}>
+    <View style={[styles.track, { backgroundColor: track, borderColor: t.border }]}>
       <Animated.View
         style={[
           styles.fill,
           { backgroundColor: color, width: width.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) },
         ]}
       />
+      <View style={styles.segments} pointerEvents="none">
+        {Array.from({ length: SEGMENTS }, (_, i) => (
+          <View key={i} style={[styles.segment, i < SEGMENTS - 1 && { borderRightColor: track, borderRightWidth: px.thin }]} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -243,30 +288,41 @@ export function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: n
 }
 
 const styles = StyleSheet.create({
-  screen: { padding: 16, gap: 16, paddingBottom: 56 },
+  screen: { padding: 16, gap: 18, paddingBottom: 56 },
   card: {
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
+    borderRadius: 0,
+    borderWidth: px.border,
+    paddingHorizontal: 14,
     paddingVertical: 4,
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    marginRight: px.shadow,
   },
-  heading: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginTop: 4, marginBottom: -6, marginLeft: 4 },
-  title: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
-  body: { fontSize: 16, lineHeight: 23 },
-  button: { minHeight: 54, borderRadius: 16, alignItems: "center", justifyContent: "center", paddingHorizontal: 18 },
-  buttonText: { fontSize: 17, fontWeight: "700" },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 14, gap: 12 },
-  rowTitle: { fontSize: 17, fontWeight: "600" },
-  rowSubtitle: { fontSize: 14, marginTop: 2, lineHeight: 19 },
-  chevron: { fontSize: 26, marginTop: -2 },
-  badge: { alignItems: "center", justifyContent: "center" },
-  chip: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
-  fieldLabel: { fontSize: 14, fontWeight: "600" },
-  input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, fontSize: 17 },
-  pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  track: { height: 8, borderRadius: 4, overflow: "hidden" },
-  fill: { height: 8, borderRadius: 4 },
+  heading: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16, textTransform: "uppercase", letterSpacing: 1, marginTop: 6, marginBottom: -6 },
+  title: { fontFamily: fonts.pixel, fontSize: 17, lineHeight: 28 },
+  body: { fontFamily: fonts.text, fontSize: 21, lineHeight: 24 },
+  button: {
+    minHeight: 54,
+    borderRadius: 0,
+    borderWidth: px.border,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    marginRight: px.shadow,
+    marginBottom: px.shadow,
+  },
+  buttonText: { fontFamily: fonts.pixel, fontSize: 12, lineHeight: 18, textAlign: "center" },
+  row: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 12, marginHorizontal: -14, paddingHorizontal: 14 },
+  rowTitle: { fontFamily: fonts.text, fontSize: 23, lineHeight: 25 },
+  rowSubtitle: { fontFamily: fonts.text, fontSize: 18, marginTop: 2, lineHeight: 20 },
+  chevron: { fontSize: 12 },
+  badge: { alignItems: "center", justifyContent: "center", borderWidth: px.thin },
+  chip: { borderWidth: px.border, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 7, marginRight: px.thin, marginBottom: px.thin },
+  chipText: { fontFamily: fonts.text, fontSize: 21, lineHeight: 22 },
+  fieldLabel: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16 },
+  input: { borderWidth: px.border, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 10, fontSize: 23, fontFamily: fonts.text },
+  pill: { borderRadius: 0, borderWidth: px.thin, paddingHorizontal: 8, paddingVertical: 2 },
+  pillText: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16 },
+  track: { height: 18, borderWidth: px.thin, overflow: "hidden" },
+  fill: { height: "100%" },
+  segments: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, flexDirection: "row" },
+  segment: { flex: 1 },
 });

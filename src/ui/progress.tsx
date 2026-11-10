@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Progress } from "@/lib/types";
 import { Button, Card, FadeIn, IconBadge, ProgressBar, Row } from "./components";
-import { useTheme } from "./theme";
+import { fonts, hardShadow, px, useTheme } from "./theme";
 
 const MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
 const CELEBRATED_KEY = "beseen.celebratedMilestone";
@@ -30,21 +30,23 @@ export function StreakCard({ progress }: { progress: Progress }) {
   const t = useTheme();
   const { next, fraction } = nextMilestone(progress.streak_days);
   return (
-    <View style={[styles.hero, { backgroundColor: t.hero, shadowColor: t.shadow }]}>
-      <Text style={[styles.heroLabel, { color: t.heroMuted }]}>Current streak</Text>
-      <View style={styles.heroNumberRow}>
-        <Text style={[styles.heroNumber, { color: t.heroText }]}>{progress.streak_days}</Text>
-        <Text style={[styles.heroUnit, { color: t.heroText }]}>{progress.streak_days === 1 ? "day kept" : "days kept"}</Text>
-      </View>
-      <Text style={[styles.heroLine, { color: t.heroMuted }]}>{headline(progress)}</Text>
+    <View style={[styles.hero, { backgroundColor: t.hero, borderColor: t.border }, hardShadow(t.shadow)]}>
+      <View style={[styles.heroInner, { borderColor: t.heroFrame }]}>
+        <Text style={[styles.heroLabel, { color: t.heroMuted }]}>Current streak</Text>
+        <View style={styles.heroNumberRow}>
+          <Text style={[styles.heroNumber, { color: t.heroText }]}>{progress.streak_days}</Text>
+          <Text style={[styles.heroUnit, { color: t.heroText }]}>{progress.streak_days === 1 ? "day kept" : "days kept"}</Text>
+        </View>
+        <Text style={[styles.heroLine, { color: t.heroMuted }]}>{headline(progress)}</Text>
 
-      <WeekStrip week={progress.week} />
+        <WeekStrip week={progress.week} />
 
-      <View style={{ gap: 8 }}>
-        <ProgressBar value={fraction} color={t.heroText} track={t.heroTrack} />
-        <Text style={[styles.heroSmall, { color: t.heroMuted }]}>
-          {days(next - progress.streak_days)} to your {next}-day milestone
-        </Text>
+        <View style={{ gap: 8 }}>
+          <ProgressBar value={fraction} color={t.gold} track={t.heroTrack} />
+          <Text style={[styles.heroSmall, { color: t.heroMuted }]}>
+            {days(next - progress.streak_days)} to your {next}-day milestone
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -58,17 +60,17 @@ function WeekStrip({ week }: { week: Progress["week"] }) {
         const letter = new Date(`${d.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "narrow" });
         const dot =
           d.state === "kept"
-            ? { backgroundColor: t.heroText }
+            ? { backgroundColor: t.gold, borderColor: t.heroTrack }
             : d.state === "slipped"
-              ? { backgroundColor: "transparent", borderWidth: 2, borderColor: t.heroMuted }
+              ? { backgroundColor: "transparent", borderColor: t.heroMuted }
               : d.state === "today"
-                ? { backgroundColor: t.heroTrack, borderWidth: 2, borderColor: t.heroText }
-                : { backgroundColor: t.heroTrack };
+                ? { backgroundColor: t.heroTrack, borderColor: t.heroText }
+                : { backgroundColor: t.heroTrack, borderColor: t.heroTrack };
         return (
           <View key={d.date} style={styles.day} accessibilityLabel={`${d.date}: ${d.state}`}>
             <View style={[styles.dot, dot]}>
-              {d.state === "kept" ? <Text style={{ color: t.hero, fontWeight: "800", fontSize: 13 }}>✓</Text> : null}
-              {d.state === "slipped" ? <Text style={{ color: t.heroMuted, fontWeight: "800", fontSize: 12 }}>✕</Text> : null}
+              {d.state === "kept" ? <Text style={{ color: t.heroTrack, fontWeight: "900", fontSize: 14 }}>✓</Text> : null}
+              {d.state === "slipped" ? <Text style={{ color: t.heroMuted, fontWeight: "900", fontSize: 13 }}>✕</Text> : null}
             </View>
             <Text style={[styles.dayLetter, { color: d.state === "today" ? t.heroText : t.heroMuted }]}>{letter}</Text>
           </View>
@@ -91,8 +93,8 @@ function Stat({ value, label }: { value: number; label: string }) {
   const t = useTheme();
   return (
     <Card style={{ flex: 1, paddingVertical: 14, gap: 2 }}>
-      <Text style={{ color: t.text, fontSize: 28, fontWeight: "800", letterSpacing: -0.5 }}>{value}</Text>
-      <Text style={{ color: t.muted, fontSize: 13, lineHeight: 17 }}>{label}</Text>
+      <Text style={{ color: t.text, fontFamily: fonts.pixel, fontSize: 22, lineHeight: 34 }}>{value}</Text>
+      <Text style={{ color: t.muted, fontFamily: fonts.text, fontSize: 18, lineHeight: 19 }}>{label}</Text>
     </Card>
   );
 }
@@ -110,10 +112,10 @@ export function MilestoneCelebration({ streak }: { streak: number }) {
 
   return (
     <FadeIn>
-      <Card style={{ paddingVertical: 18, gap: 12, alignItems: "center", borderColor: t.accent, borderWidth: 1.5 }}>
-        <Text style={{ fontSize: 40 }}>🎉</Text>
-        <Text style={{ color: t.text, fontSize: 22, fontWeight: "800", textAlign: "center" }}>{days(streak)} kept!</Text>
-        <Text style={{ color: t.muted, fontSize: 16, textAlign: "center", lineHeight: 22 }}>
+      <Card style={{ paddingVertical: 18, gap: 12, alignItems: "center", borderColor: t.gold, borderWidth: px.border + 1 }}>
+        <Text style={{ fontSize: 40, color: t.gold }}>★</Text>
+        <Text style={{ color: t.text, fontFamily: fonts.pixel, fontSize: 16, lineHeight: 26, textAlign: "center" }}>{days(streak)} kept!</Text>
+        <Text style={{ color: t.muted, fontFamily: fonts.text, fontSize: 21, textAlign: "center", lineHeight: 23 }}>
           That's a real habit forming. Your next milestone is {nextMilestone(streak).next} days.
         </Text>
         <View style={{ alignSelf: "stretch" }}>
@@ -146,13 +148,13 @@ export function SetupChecklist({ items }: { items: ChecklistItem[] }) {
   return (
     <Card style={{ paddingTop: 16, gap: 4 }}>
       <View style={{ gap: 10, paddingBottom: 6 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-          <Text style={{ color: t.text, fontSize: 18, fontWeight: "800" }}>Finish setting up</Text>
-          <Text style={{ color: t.muted, fontSize: 14, fontWeight: "600" }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ color: t.text, fontFamily: fonts.pixel, fontSize: 12, lineHeight: 20 }}>Finish setting up</Text>
+          <Text style={{ color: t.muted, fontFamily: fonts.text, fontSize: 20 }}>
             {done} of {items.length}
           </Text>
         </View>
-        <ProgressBar value={done / items.length} color={t.accent} track={t.subtle} />
+        <ProgressBar value={done / items.length} color={t.success} track={t.subtle} />
       </View>
       {items.map((item, i) => (
         <Row
@@ -175,22 +177,17 @@ export function SetupChecklist({ items }: { items: ChecklistItem[] }) {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    borderRadius: 24,
-    padding: 20,
-    gap: 16,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  heroLabel: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: -12 },
-  heroNumberRow: { flexDirection: "row", alignItems: "baseline", gap: 10 },
-  heroNumber: { fontSize: 64, fontWeight: "900", letterSpacing: -2, fontVariant: ["tabular-nums"] },
-  heroUnit: { fontSize: 20, fontWeight: "700" },
-  heroLine: { fontSize: 16, lineHeight: 22, marginTop: -10 },
-  heroSmall: { fontSize: 13, fontWeight: "600" },
+  hero: { borderRadius: 0, borderWidth: px.border, padding: 4, marginRight: px.shadow },
+  // Second frame inside the first: the double border of an RPG dialog window.
+  heroInner: { borderWidth: px.thin, padding: 16, gap: 16 },
+  heroLabel: { fontFamily: fonts.pixel, fontSize: 10, lineHeight: 16, textTransform: "uppercase", letterSpacing: 1, marginBottom: -10 },
+  heroNumberRow: { flexDirection: "row", alignItems: "baseline", gap: 12 },
+  heroNumber: { fontFamily: fonts.pixel, fontSize: 48, lineHeight: 64, textShadowColor: "#1A1C2C", textShadowOffset: { width: 4, height: 4 }, textShadowRadius: 0 },
+  heroUnit: { fontFamily: fonts.pixel, fontSize: 12, lineHeight: 18 },
+  heroLine: { fontFamily: fonts.text, fontSize: 21, lineHeight: 23, marginTop: -10 },
+  heroSmall: { fontFamily: fonts.text, fontSize: 19 },
   week: { flexDirection: "row", justifyContent: "space-between" },
   day: { alignItems: "center", gap: 6 },
-  dot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-  dayLetter: { fontSize: 12, fontWeight: "700" },
+  dot: { width: 30, height: 30, borderWidth: px.thin, alignItems: "center", justifyContent: "center" },
+  dayLetter: { fontFamily: fonts.pixel, fontSize: 9, lineHeight: 14 },
 });

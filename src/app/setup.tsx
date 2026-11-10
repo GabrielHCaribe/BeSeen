@@ -10,6 +10,7 @@ import { dailyRecapEnabled, setDailyRecap } from "@/lib/reminders";
 import { checkIn } from "@/lib/session";
 import { useStore } from "@/lib/store";
 import { Body, Button, Card, Heading, Row, Screen, StatusPill, Title } from "@/ui/components";
+import { useTheme } from "@/ui/theme";
 
 const CONSENT_KEY = "beseen.accessibilityConsent";
 
@@ -66,6 +67,7 @@ export default function Setup() {
 }
 
 function DailyRecapToggle() {
+  const t = useTheme();
   const [on, setOn] = useState<boolean | null>(null);
   useEffect(() => {
     dailyRecapEnabled().then(setOn);
@@ -78,6 +80,9 @@ function DailyRecapToggle() {
         subtitle="A reminder at 8:30 pm to check your streak"
         right={
           <Switch
+            trackColor={{ true: t.success, false: t.subtle }}
+            thumbColor={t.surface}
+            ios_backgroundColor={t.subtle}
             value={on}
             onValueChange={(next) => {
               setOn(next);

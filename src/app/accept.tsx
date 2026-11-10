@@ -5,9 +5,11 @@ import { call, errorMessage } from "@/lib/api";
 import { registerPush } from "@/lib/push";
 import { useStore } from "@/lib/store";
 import { Body, Button, Screen, Title } from "@/ui/components";
+import { useTheme } from "@/ui/theme";
 
 // Opened from the invite web page ("I have BeSeen") via beseen://accept?t=<token>.
 export default function Accept() {
+  const t = useTheme();
   const { t: token } = useLocalSearchParams<{ t?: string }>();
   const { refresh } = useStore();
   const [info, setInfo] = useState<{ user_name: string } | null>(null);
@@ -55,7 +57,7 @@ export default function Accept() {
   if (!info) {
     return (
       <Screen>
-        <ActivityIndicator />
+        <ActivityIndicator color={t.accent} />
       </Screen>
     );
   }
