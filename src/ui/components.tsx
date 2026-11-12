@@ -1,18 +1,28 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Keyboard,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  type HostInstance,
+  type ScrollViewInstance,
   type TextInputProps,
   View,
   type ViewStyle,
 } from "react-native";
 import { type Theme, useTheme } from "./theme";
+
+// Lets a text field inside a Screen ask to be scrolled above the keyboard.
+const KeyboardReveal = createContext<((field: HostInstance | null) => void) | null>(null);
+
+// Space kept between the bottom of a focused field and the top of the keyboard.
+const KEYBOARD_GAP = 24;
 
 export function Screen({
   children,
@@ -24,17 +34,70 @@ export function Screen({
   onRefresh?: () => void;
 }) {
   const t = useTheme();
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const scrollY = useRef(0);
+  const keyboardTop = useRef<number | null>(null);
+  const focused = useRef<HostInstance | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Scroll just enough that the focused field sits above the keyboard. Measured on screen, so it
+  // works the same on iOS and Android, in sheets and full screens.
+  function reveal(field: HostInstance | null) {
+    const top = keyboardTop.current;
+    if (!field || top === null) return;
+    field.measureInWindow((_x, y, _w, height) => {
+      const overlap = y + height + KEYBOARD_GAP - top;
+      if (overlap > 0) scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
+    });
+  }
+
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {
+      keyboardTop.current = e.endCoordinates.screenY;
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    // Reveal once the keyboard is fully up and the extra bottom space below has been laid out.
+    const shown = Keyboard.addListener("keyboardDidShow", (e) => {
+      keyboardTop.current = e.endCoordinates.screenY;
+      setTimeout(() => reveal(focused.current), 100);
+    });
+    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => {
+      keyboardTop.current = null;
+      setKeyboardHeight(0);
+    });
+    return () => {
+      show.remove();
+      shown.remove();
+      hide.remove();
+    };
+  }, []);
+
+  function onFieldFocus(field: HostInstance | null) {
+    focused.current = field;
+    // Moving between fields with the keyboard already up: no keyboard event follows, so reveal now.
+    if (keyboardTop.current !== null) setTimeout(() => reveal(field), 100);
+  }
+
   return (
-    <ScrollView
-      style={{ backgroundColor: t.background }}
-      contentContainerStyle={styles.screen}
-      contentInsetAdjustmentBehavior="automatic"
-      keyboardShouldPersistTaps="handled"
-      indicatorStyle="white"
-      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.muted} /> : undefined}
-    >
-      {children}
-    </ScrollView>
+    <KeyboardReveal.Provider value={onFieldFocus}>
+      <ScrollView
+        ref={scrollRef}
+        style={{ backgroundColor: t.background }}
+        // Extra room under the content while the keyboard is up, so everything can scroll above it.
+        contentContainerStyle={[styles.screen, { paddingBottom: styles.screen.paddingBottom + keyboardHeight }]}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        indicatorStyle="white"
+        refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={t.muted} /> : undefined}
+      >
+        {children}
+      </ScrollView>
+    </KeyboardReveal.Provider>
   );
 }
 
@@ -159,35 +222,96 @@ export function IconBadge({ glyph, tone = "accent", size = 36 }: { glyph: string
   );
 }
 
-export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+// Two or three mutually exclusive options in one bar, like the iOS segmented control.
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
   const t = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.chip,
-        { borderColor: selected ? t.primary : t.border, backgroundColor: selected ? t.primary : "transparent" },
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <Text style={{ color: selected ? t.primaryText : t.text, fontWeight: selected ? "600" : "400", fontSize: 15 }}>{label}</Text>
-    </Pressable>
+    <View style={[styles.segmented, { borderColor: t.border, backgroundColor: t.surface }]} accessibilityRole="tablist">
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(o.value)}
+            style={({ pressed }) => [
+              styles.segment,
+              selected && { backgroundColor: t.raised, borderColor: t.borderStrong },
+              pressed && !selected && { opacity: 0.6 },
+            ]}
+          >
+            <Text style={[styles.segmentText, { color: selected ? t.text : t.muted }]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// "45" over "min", "1½" over "hours": the number carries the tile, the unit stays quiet.
+function splitMinutes(m: number): [string, string] {
+  const hours = Math.floor(m / 60);
+  if (m >= 60 && m % 60 === 0) return [String(hours), hours === 1 ? "hour" : "hours"];
+  if (m >= 60 && m % 30 === 0) return [`${hours}½`, "hours"];
+  return [String(m), "min"];
+}
+
+// A grid of daily-limit choices. Three to a row.
+export function TimeGrid({ choices, value, onChange }: { choices: number[]; value: number | null; onChange: (m: number) => void }) {
+  const t = useTheme();
+  return (
+    <View style={styles.timeGrid}>
+      {choices.map((m) => {
+        const selected = m === value;
+        const [num, unit] = splitMinutes(m);
+        return (
+          <Pressable
+            key={m}
+            accessibilityRole="button"
+            accessibilityLabel={`${num} ${unit}`}
+            accessibilityState={{ selected }}
+            onPress={() => onChange(m)}
+            style={({ pressed }) => [
+              styles.timeTile,
+              { borderColor: selected ? t.accent : t.border, backgroundColor: selected ? t.subtle : t.surface },
+              pressed && !selected && { opacity: 0.6 },
+            ]}
+          >
+            <Text style={[styles.timeNumber, { color: selected ? t.accent : t.text }]}>{num}</Text>
+            <Text style={[styles.timeUnit, { color: selected ? t.accent : t.muted }]}>{unit}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
 export function Field(props: TextInputProps & { label: string }) {
   const t = useTheme();
-  const { label, style, ...rest } = props;
+  const reveal = useContext(KeyboardReveal);
+  const ref = useRef<HostInstance>(null);
+  const { label, style, onFocus, ...rest } = props;
   return (
-    <View style={{ gap: 10 }}>
+    <View ref={ref} style={{ gap: 10 }}>
       <Text style={[styles.fieldLabel, { color: t.muted }]}>{label}</Text>
       <TextInput
         placeholderTextColor={t.muted}
         selectionColor={t.accent}
         keyboardAppearance="dark"
         style={[styles.input, { color: t.text, borderColor: t.border, backgroundColor: t.surface }, style]}
+        onFocus={(e) => {
+          reveal?.(ref.current);
+          onFocus?.(e);
+        }}
         {...rest}
       />
     </View>
@@ -228,24 +352,6 @@ export function ProgressBar({ value, color, track }: { value: number; color: str
   );
 }
 
-// Fades and lifts its children in when first shown.
-export function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
-  const [progress] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    Animated.timing(progress, { toValue: 1, duration: 600, delay, useNativeDriver: true }).start();
-  }, [progress, delay]);
-  return (
-    <Animated.View
-      style={{
-        opacity: progress,
-        transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: 20, paddingTop: 12, gap: 16, paddingBottom: 64 },
   card: { borderRadius: 18, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 2 },
@@ -259,7 +365,13 @@ const styles = StyleSheet.create({
   rowSubtitle: { fontSize: 14, marginTop: 3, lineHeight: 19 },
   chevron: { fontSize: 22, fontWeight: "300", marginTop: -2 },
   badge: { alignItems: "center", justifyContent: "center", borderWidth: 1 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  segmented: { flexDirection: "row", borderWidth: 1, borderRadius: 14, padding: 3, gap: 3 },
+  segment: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 11, borderWidth: 1, borderColor: "transparent" },
+  segmentText: { fontSize: 15, fontWeight: "500" },
+  timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  timeTile: { flexBasis: "30%", flexGrow: 1, borderWidth: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center", gap: 2 },
+  timeNumber: { fontSize: 26, fontWeight: "300", letterSpacing: -0.5, fontVariant: ["tabular-nums"] },
+  timeUnit: { fontSize: 12, fontWeight: "500", letterSpacing: 0.5 },
   fieldLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 2 },
   input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 15, fontSize: 17 },
   pill: { flexDirection: "row", alignItems: "center", gap: 8 },

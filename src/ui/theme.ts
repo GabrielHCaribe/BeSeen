@@ -6,6 +6,8 @@ const space = {
   text: "#ECEEF3",
   muted: "#7D8496",
   border: "#1A1D27",
+  borderStrong: "#343A4A",
+  raised: "#1E222D", // the selected segment of a segmented control
   accent: "#9AD8FF",
   accentText: "#05060A",
   subtle: "#0F1A24",

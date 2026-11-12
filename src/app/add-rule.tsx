@@ -5,17 +5,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Image, Platform, View } from "react-native";
 import { call, errorMessage, SCREEN_TIME_BUILD } from "@/lib/api";
 import { ADULT_DNS_HOST, LIMIT_CHOICES } from "@/lib/constants";
-import { DOMAIN_PATTERN, minutesLabel, normalizeDomain } from "@/lib/format";
+import { DOMAIN_PATTERN, normalizeDomain } from "@/lib/format";
 import { BeSeenNative } from "@/lib/native";
 import { useStore } from "@/lib/store";
 import type { RuleMode, TargetType } from "@/lib/types";
-import { Body, Button, Card, Chip, Field, Heading, Row, Screen } from "@/ui/components";
+import { Body, Button, Card, Field, Heading, Row, Screen, Segmented, TimeGrid } from "@/ui/components";
 import { useTheme } from "@/ui/theme";
 
 const KINDS: Record<"ios" | "android", { kind: TargetType; title: string; subtitle: string }[]> = {
   ios: [
     { kind: "selection", title: "Apps and websites", subtitle: "Pick from your iPhone's list" },
-    { kind: "site", title: "A website", subtitle: "Type an address to block" },
+    { kind: "site", title: "A website", subtitle: "Type an address to block or limit" },
     { kind: "adult_sites", title: "All adult websites", subtitle: "Uses Apple's built-in filter" },
   ],
   android: [
@@ -47,10 +47,14 @@ export default function AddRule() {
     if (!saved.current) BeSeenNative?.discardSelection?.(ruleId).catch(() => {});
   }, [ruleId]);
 
-  const blockOnly = kind === "adult_sites" || (platform === "ios" && kind === "site");
+  const blockOnly = kind === "adult_sites";
   const effectiveMode: RuleMode = blockOnly ? "block" : mode;
+  // iOS can only time-limit sites picked in Apple's list (it hands out tokens, never addresses), so a
+  // limited website on iPhone is saved as a picked selection under the typed name.
+  const iosSiteLimit = platform === "ios" && kind === "site" && effectiveMode === "limit";
 
   async function choose(next: TargetType) {
+    if (next !== kind) setPicked(null);
     setKind(next);
     if (next === "adult_sites") setLabel("Adult websites");
     if (next === "selection") await pickOnIos();
@@ -100,17 +104,24 @@ export default function AddRule() {
       Alert.alert("Add a name", "Type the name your partner should see, like \"Instagram\".");
       return;
     }
+    if (iosSiteLimit && !picked) {
+      Alert.alert("Pick the website first", "On iPhone, choose the website from Apple's list so its time can be counted.");
+      return;
+    }
+    const asSelection = kind === "selection" || iosSiteLimit;
     setSaving(true);
     try {
       await call("rules/create", {
         id: ruleId,
         label: finalLabel,
-        target_type: kind,
-        target: kind === "app" ? app!.packageName : kind === "site" ? domain : null,
+        target_type: asSelection ? "selection" : kind,
+        target: kind === "app" ? app!.packageName : kind === "site" && !asSelection ? domain : null,
         mode: effectiveMode,
         limit_minutes: effectiveMode === "limit" ? minutes : null,
       });
       saved.current = true;
+      // Picked in Apple's list but saved as a typed, blocked site: the picked selection isn't used.
+      if (!asSelection && picked) BeSeenNative?.discardSelection?.(ruleId).catch(() => {});
       await refresh();
       router.back();
       if (kind === "adult_sites" && platform === "android") {
@@ -194,19 +205,30 @@ export default function AddRule() {
       {kind && targetChosen && (
         <>
           <Heading>Rule</Heading>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Chip label="Block completely" selected={effectiveMode === "block"} onPress={() => setMode("block")} />
-            {!blockOnly && <Chip label="Daily time limit" selected={effectiveMode === "limit"} onPress={() => setMode("limit")} />}
-          </View>
-          {effectiveMode === "limit" && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {LIMIT_CHOICES.map((m) => (
-                <Chip key={m} label={minutesLabel(m)} selected={minutes === m} onPress={() => setMinutes(m)} />
-              ))}
-            </View>
+          {blockOnly ? (
+            <Body muted>Always blocked completely.</Body>
+          ) : (
+            <Segmented
+              options={[
+                { value: "block", label: "Block" },
+                { value: "limit", label: "Daily limit" },
+              ]}
+              value={effectiveMode}
+              onChange={setMode}
+            />
           )}
-          {blockOnly && platform === "ios" && kind === "site" && (
-            <Body muted>To set a time limit on a website, add it with "Apps and websites" instead.</Body>
+          {effectiveMode === "limit" && (
+            <TimeGrid choices={LIMIT_CHOICES} value={minutes} onChange={setMinutes} />
+          )}
+          {iosSiteLimit && (
+            <Card style={{ paddingVertical: 16, gap: 12 }}>
+              <Body muted>
+                {picked
+                  ? `${describeCounts(picked)} chosen in Apple's list.`
+                  : "iPhone only counts time on websites chosen from Apple's list. Find the site there (if it's missing, open it in Safari once first)."}
+              </Body>
+              <Button title={picked ? "Change" : "Choose it from Apple's list"} kind="secondary" onPress={pickOnIos} />
+            </Card>
           )}
 
           <Field

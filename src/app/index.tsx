@@ -6,8 +6,8 @@ import { describeRule, formatWhen, timeUntil } from "@/lib/format";
 import { BeSeenNative, missingPermissions } from "@/lib/native";
 import { useStore } from "@/lib/store";
 import type { Rule } from "@/lib/types";
-import { Body, Button, Card, FadeIn, Heading, IconBadge, Row, Screen } from "@/ui/components";
-import { MilestoneCelebration, SetupChecklist, StatsRow, StreakCard } from "@/ui/progress";
+import { Body, Button, Card, Heading, IconBadge, Row, Screen } from "@/ui/components";
+import { SetupChecklist } from "@/ui/checklist";
 import { useTheme } from "@/ui/theme";
 
 export default function Home() {
@@ -26,7 +26,6 @@ export default function Home() {
   const partner = state?.partner ?? null;
   const missing = missingPermissions(status);
   const rules = state?.rules ?? [];
-  const progress = state?.progress;
   const name = state?.me.display_name;
 
   const checklist = [
@@ -82,21 +81,7 @@ export default function Home() {
         </Card>
       )}
 
-      {progress && <MilestoneCelebration streak={progress.streak_days} />}
-
-      {progress && (
-        <FadeIn>
-          <StreakCard progress={progress} />
-        </FadeIn>
-      )}
-
       <SetupChecklist items={checklist} />
-
-      {progress && (
-        <FadeIn delay={120}>
-          <StatsRow progress={progress} />
-        </FadeIn>
-      )}
 
       <Heading>Your rules</Heading>
       <Card>

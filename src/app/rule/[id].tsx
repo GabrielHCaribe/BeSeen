@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Alert, Platform, View } from "react-native";
 import { call, errorMessage } from "@/lib/api";
 import { LIMIT_CHOICES } from "@/lib/constants";
-import { describeRule, direction, formatWhen, minutesLabel, timeUntil } from "@/lib/format";
+import { describeRule, direction, formatWhen, timeUntil } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import type { RuleShape } from "@/lib/types";
-import { Body, Button, Card, Chip, Heading, Screen, Title } from "@/ui/components";
+import { Body, Button, Card, Heading, Screen, Segmented, TimeGrid, Title } from "@/ui/components";
 
 export default function RuleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -98,22 +98,26 @@ export default function RuleScreen() {
       ) : (
         <>
           <Heading>Change rule</Heading>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Chip label="Block completely" selected={next.mode === "block"} onPress={() => setDraft({ mode: "block", limit_minutes: null })} />
-            {!blockOnly && (
-              <Chip
-                label="Daily time limit"
-                selected={next.mode === "limit"}
-                onPress={() => setDraft({ mode: "limit", limit_minutes: rule.limit_minutes ?? 30 })}
-              />
-            )}
-          </View>
+          {blockOnly ? (
+            <Body muted>
+              {rule.target_type === "site"
+                ? "On iPhone, a typed website can only be blocked. To give it a daily limit, remove this rule and add the website again with a daily limit."
+                : "Always blocked completely."}
+            </Body>
+          ) : (
+            <Segmented
+              options={[
+                { value: "block", label: "Block" },
+                { value: "limit", label: "Daily limit" },
+              ]}
+              value={next.mode}
+              onChange={(mode) =>
+                setDraft(mode === "block" ? { mode: "block", limit_minutes: null } : { mode: "limit", limit_minutes: rule.limit_minutes ?? 30 })
+              }
+            />
+          )}
           {next.mode === "limit" && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {LIMIT_CHOICES.map((m) => (
-                <Chip key={m} label={minutesLabel(m)} selected={next.limit_minutes === m} onPress={() => setDraft({ mode: "limit", limit_minutes: m })} />
-              ))}
-            </View>
+            <TimeGrid choices={LIMIT_CHOICES} value={next.limit_minutes} onChange={(m) => setDraft({ mode: "limit", limit_minutes: m })} />
           )}
           {dir !== "same" && (
             <>
